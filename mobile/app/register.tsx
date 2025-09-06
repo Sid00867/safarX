@@ -6,7 +6,7 @@ export default function AuthScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
-  const [phone, setPhone] = useState();
+  const [phone, setPhone] = useState("");
 
   const signIn = async () => {
     const { error } = await supabase.auth.signInWithPassword({
@@ -17,8 +17,34 @@ export default function AuthScreen() {
   };
 
   const signUp = async () => {
-    const { error } = await supabase.auth.signUp({ email, password });
-    if (error) alert(error.message);
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+    });
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    const user = data.user;
+
+    if (user) {
+      const { error: insertError } = await supabase.from("users").insert([
+        {
+          user_Id: user.id, // foreign key to auth.users
+          name,
+          email,
+          phone,
+        },
+      ]);
+
+      if (insertError) {
+        alert(insertError.message);
+      } else {
+        alert("User registered successfully!");
+      }
+    }
   };
 
   return (
@@ -35,23 +61,18 @@ export default function AuthScreen() {
         placeholder="Email"
         value={email}
         onChangeText={setEmail}
+        keyboardType="email-address"
         style={{ borderWidth: 1, marginBottom: 10, padding: 10 }}
       />
       <TextInput
         placeholder="Mobile Number"
-        value={email}
+        value={phone}
         onChangeText={setPhone}
+        keyboardType="numeric"
         style={{ borderWidth: 1, marginBottom: 10, padding: 10 }}
       />
       <TextInput
         placeholder="Password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-        style={{ borderWidth: 1, marginBottom: 10, padding: 10 }}
-      />
-      <TextInput
-        placeholder="Aadhaar Number"
         value={password}
         onChangeText={setPassword}
         secureTextEntry
