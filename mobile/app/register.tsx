@@ -8,11 +8,11 @@ import { useRouter } from "expo-router";
 // Contract ABI
 import contractAbi from "./abis/SafarXID.json";
 
-const CONTRACT_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+const CONTRACT_ADDRESS = "0x5fbdb2315678afecb367f032d93f642f64180aa3";
 
 // Private key from Hardhat local node (account #0 usually)
 const LOCAL_PRIVATE_KEY =
-  "0x689af8efa8c651a91ad287602527f3af2fe9f6501a7ac4b061667b5a93e037fd";
+  "0xde9be858da4a475276426320d5e9262ecfc3ba460bfac56360bfa6c4c28b4ee0";
 
 export default function RegisterScreen() {
   const router = useRouter();
