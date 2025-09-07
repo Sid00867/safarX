@@ -1,29 +1,36 @@
 import { useState } from "react";
-import { View, TextInput, Button, Text } from "react-native";
+import { View, TextInput, Button, Text, Alert } from "react-native";
 import { supabase } from "../lib/supabase";
+import { ethers } from "ethers";
+import * as Crypto from "expo-crypto";
+import { useRouter } from "expo-router";
 
-export default function AuthScreen() {
+// Contract ABI
+import contractAbi from "./abis/SafarXID.json";
+
+const CONTRACT_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+
+// Private key from Hardhat local node (account #0 usually)
+const LOCAL_PRIVATE_KEY =
+  "0x689af8efa8c651a91ad287602527f3af2fe9f6501a7ac4b061667b5a93e037fd";
+
+export default function RegisterScreen() {
+  const router = useRouter();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
 
-  const signIn = async () => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (error) alert(error.message);
-  };
-
   const signUp = async () => {
+    // Supabase signup
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
     });
 
     if (error) {
-      alert(error.message);
+      Alert.alert("Signup failed", error.message);
       return;
     }
 
@@ -44,6 +51,48 @@ export default function AuthScreen() {
       } else {
         alert("User registered successfully!");
       }
+    }
+
+    try {
+      // Connect to Hardhat blockchain
+      const provider = new ethers.JsonRpcProvider("http://192.168.1.7:8545");
+
+      const wallet = new ethers.Wallet(LOCAL_PRIVATE_KEY, provider);
+
+      const contract = new ethers.Contract(
+        CONTRACT_ADDRESS,
+        contractAbi.abi,
+        wallet
+      );
+
+      // Hash phone
+      const phoneHash = await Crypto.digestStringAsync(
+        Crypto.CryptoDigestAlgorithm.SHA256,
+        phone
+      );
+
+      // Call contract
+      const tx = await contract.registerTourist(name, phoneHash);
+      const receipt = await tx.wait();
+
+      // QR payload
+      const qrPayload = {
+        address: wallet.address,
+        name,
+        txHash: receipt.hash,
+      };
+
+      // Navigate → Home, pass QR payload
+      router.push({
+        pathname: "/home",
+        params: { qrData: JSON.stringify(qrPayload) },
+      });
+    } catch (err: any) {
+      console.error("Blockchain Error:", err);
+      Alert.alert(
+        "Blockchain registration failed",
+        err?.message || "Check console"
+      );
     }
   };
 
@@ -78,6 +127,7 @@ export default function AuthScreen() {
         secureTextEntry
         style={{ borderWidth: 1, marginBottom: 10, padding: 10 }}
       />
+
       <Button title="Register" onPress={signUp} />
     </View>
   );
