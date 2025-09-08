@@ -1,10 +1,5 @@
 import React, { useState } from "react";
-import { createClient } from "@supabase/supabase-js";
-
-// Initialize Supabase client
-const supabaseUrl = "https://sfimbdeizwgzfaydkyhl.supabase.co";
-const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmaW1iZGVpendnemZheWRreWhsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1Njg5MTI3MSwiZXhwIjoyMDcyNDY3MjcxfQ.ZIZBsd57pyvlVqeDoNk7h5Cg8W78ShdxttOnWnZfDQU";
-const supabase = createClient(supabaseUrl, supabaseKey);
+import { supabase } from "../lib/supabase";
 
 export default function GeofenceForm() {
   const [formData, setFormData] = useState({
@@ -31,9 +26,9 @@ export default function GeofenceForm() {
         name: formData.name,
         type: formData.type,
         description: formData.description,
-        latitude: parseFloat(formData.latitude),
-        longitude: parseFloat(formData.longitude),
-        radius: parseInt(formData.radius)
+        latitude: Number(formData.latitude),
+        longitude: Number(formData.longitude),
+        radius: Number(formData.radius)
       }
     ]);
 
@@ -55,7 +50,10 @@ export default function GeofenceForm() {
   return (
     <div style={{ maxWidth: "400px", margin: "20px auto", fontFamily: "Arial" }}>
       <h2>Add Geofence</h2>
-      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+      <form
+        onSubmit={handleSubmit}
+        style={{ display: "flex", flexDirection: "column", gap: "10px" }}
+      >
         <input
           type="text"
           name="name"
