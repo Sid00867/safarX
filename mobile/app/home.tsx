@@ -1,66 +1,39 @@
-import { View, Text, Button } from "react-native";
-import { useLocalSearchParams } from "expo-router";
-import QRCode from "react-native-qrcode-svg";
-import { useEffect } from "react";
-import { startBackgroundLocation } from "./backgroundLocation";
-import { supabase } from "../lib/supabase";
+import React from "react";
+import { View, Text, StyleSheet } from "react-native";
+import { useLocationService } from "./providers/LocationProvider";
 
 export default function HomeScreen() {
-  useEffect(() => {
-    startBackgroundLocation(); // 👈 start tracking as soon as app loads
-  }, []);
-
-  const logout = async () => {
-    await supabase.auth.signOut();
-  };
-
-  const { qrData } = useLocalSearchParams<{ qrData: string }>();
-
-  let parsedQrData: { address: string; name: string; txHash: string } | null =
-    null;
-
-  if (qrData) {
-    try {
-      parsedQrData = JSON.parse(qrData);
-    } catch (err) {
-      console.error("Failed to parse QR data", err);
-    }
-  }
+  const location = useLocationService();
 
   return (
-    <View
-      style={{
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-        padding: 20,
-      }}
-    >
-      <Text style={{ fontSize: 20, marginBottom: 20 }}>
-        Welcome to the Home screen!
-      </Text>
-
-      {parsedQrData ? (
-        <View style={{ alignItems: "center" }}>
-          <Text style={{ marginBottom: 10 }}>
-            Tourist Name: {parsedQrData.name}
-          </Text>
-          <Text style={{ marginBottom: 10 }}>
-            Wallet Address: {parsedQrData.address}
-          </Text>
-          <Text style={{ marginBottom: 20 }}>
-            Transaction Hash: {parsedQrData.txHash}
-          </Text>
-
-          <QRCode value={JSON.stringify(parsedQrData)} size={200} />
-        </View>
+    <View style={styles.container}>
+      <Text style={styles.title}> Home</Text>
+      {location ? (
+        <>
+          <Text style={styles.text}>Latitude: {location.latitude}</Text>
+          <Text style={styles.text}>Longitude: {location.longitude}</Text>
+        </>
       ) : (
-        <Text>No QR data found</Text>
+        <Text style={styles.text}>Fetching location...</Text>
       )}
-
-      <View style={{ marginTop: 30 }}>
-        <Button title="Logout" onPress={logout} />
-      </View>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#fff",
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: "bold",
+    marginBottom: 16,
+  },
+  text: {
+    fontSize: 16,
+    marginVertical: 4,
+  },
+});

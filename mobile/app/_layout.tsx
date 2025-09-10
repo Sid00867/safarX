@@ -3,6 +3,7 @@ import { Slot, useRouter } from "expo-router";
 import { supabase } from "../lib/supabase";
 import { Session } from "@supabase/supabase-js";
 import { View, ActivityIndicator } from "react-native";
+import { LocationProvider } from "./providers/LocationProvider";
 
 export default function RootLayout() {
   const [session, setSession] = useState<Session | null>(null);
@@ -42,5 +43,11 @@ export default function RootLayout() {
     );
   }
 
-  return <Slot />; // renders the screen chosen by router.replace()
+  return (
+    <LocationProvider>
+      {" "}
+      {/* ✅ wrap your app here */}
+      <Slot /> {/* your screens go inside */}
+    </LocationProvider>
+  );
 }
