@@ -1,9 +1,15 @@
 import { View, Text, Button } from "react-native";
-import { supabase } from "../lib/supabase";
 import { useLocalSearchParams } from "expo-router";
 import QRCode from "react-native-qrcode-svg";
+import { useEffect } from "react";
+import { startBackgroundLocation } from "./backgroundLocation";
+import { supabase } from "../lib/supabase";
 
 export default function HomeScreen() {
+  useEffect(() => {
+    startBackgroundLocation(); // 👈 start tracking as soon as app loads
+  }, []);
+
   const logout = async () => {
     await supabase.auth.signOut();
   };
