@@ -3,6 +3,10 @@ import { Text, View, TextInput, Button, Alert } from "react-native";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "expo-router";
 import { generateSimpleWallet } from "@/lib/wallet";
+import { ethers } from "ethers";
+import SafarXID from "@/contracts/SafarXID.json"; // <-- ABI JSON (exported from Hardhat)
+
+const CONTRACT_ADDRESS = "0x5fbdb2315678afecb367f032d93f642f64180aa3"; // Replace with your deployed contract address
 
 const SignUpScreen = () => {
   const [email, setEmail] = useState("");
@@ -12,24 +16,30 @@ const SignUpScreen = () => {
   const router = useRouter();
 
   const handleSignUp = async () => {
-    const { data, error } = await supabase.auth.signUp({ email, password });
+    try {
+      // Step 1: Supabase signup
+      const { data, error } = await supabase.auth.signUp({ email, password });
 
-    if (error) {
-      Alert.alert("Signup failed", error.message);
-      return;
-    }
+      if (error) {
+        Alert.alert("Signup failed", error.message);
+        return;
+      }
 
-    const user = data.user;
-    if (user) {
+      const user = data.user;
+      if (!user) return;
+
+      // Step 2: Generate local wallet for user
       const wallet = generateSimpleWallet();
       const walletAddress = wallet.address;
+
+      // Save user in Supabase DB
       const { error: insertError } = await supabase.from("users").insert([
         {
           user_Id: user.id,
           name,
           email,
           phone,
-          walletAddress: walletAddress,
+          walletAddress,
         },
       ]);
 
@@ -39,13 +49,55 @@ const SignUpScreen = () => {
         return;
       }
 
+      console.log("✅ Supabase user + DB entry created:", {
+        userId: user.id,
+        name,
+        email,
+        phone,
+        walletAddress,
+      });
+
+      // Step 3: Blockchain interaction
+      // For dev/test: use local Hardhat RPC or Sepolia RPC
+      const provider = new ethers.JsonRpcProvider(
+        "https://sepolia.infura.io/v3/<YOUR_INFURA_KEY>"
+      );
+      const signer = new ethers.Wallet("<PRIVATE_KEY>", provider); // backend signer for registering tourists
+
+      const contract = new ethers.Contract(
+        CONTRACT_ADDRESS,
+        SafarXID.abi,
+        signer
+      );
+
+      // Hash phone number before sending
+      const phoneHash = ethers.keccak256(ethers.toUtf8Bytes(phone));
+
+      const tx = await contract.registerTourist(name, phoneHash);
+      console.log("⏳ Blockchain tx sent:", tx.hash);
+
+      const receipt = await tx.wait();
+      console.log("✅ Blockchain tx confirmed:", receipt);
+
+      // Debugging: read back data from blockchain
+      const tourist = await contract.getTourist(signer.address);
+      console.log("📦 Tourist registered on-chain:", {
+        name: tourist[0],
+        phoneHash: tourist[1],
+        createdAt: Number(tourist[2]),
+      });
+
+      // Step 4: Navigate user
       router.push("/home");
+    } catch (err: any) {
+      console.error("❌ Error in handleSignUp:", err);
+      Alert.alert("Error", err.message || "Something went wrong");
     }
   };
 
   return (
-    <View>
-      <Text>Sign Up</Text>
+    <View style={{ padding: 20 }}>
+      <Text style={{ fontSize: 20, marginBottom: 20 }}>Sign Up</Text>
       <TextInput
         placeholder="Enter your Full Name"
         value={name}
