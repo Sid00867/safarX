@@ -3,6 +3,7 @@ import { Slot, useRouter } from "expo-router";
 import { View, ActivityIndicator } from "react-native";
 import { supabase } from "../lib/supabase";
 import { Session } from "@supabase/supabase-js";
+import "react-native-get-random-values";
 
 export default function RootLayout() {
   const [session, setSession] = useState<Session | null>(null);
