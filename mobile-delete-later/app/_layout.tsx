@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { Slot, useRouter } from "expo-router";
-import { View, ActivityIndicator } from "react-native";
 import { supabase } from "../lib/supabase";
 import { Session } from "@supabase/supabase-js";
+import { View, ActivityIndicator } from "react-native";
+import { LocationProvider } from "./providers/LocationProvider";
+import { ThirdwebProvider, metamaskWallet } from "@thirdweb-dev/react-native";
 
 export default function RootLayout() {
   const [session, setSession] = useState<Session | null>(null);
@@ -29,7 +31,7 @@ export default function RootLayout() {
       if (session) {
         router.replace("/home");
       } else {
-        router.replace("/onboard");
+        router.replace("/auth");
       }
     }
   }, [session, loading]);
@@ -42,5 +44,15 @@ export default function RootLayout() {
     );
   }
 
-  return <Slot />;
+  return (
+    <ThirdwebProvider
+      activeChain="sepolia" // use Sepolia testnet
+      supportedWallets={[metamaskWallet()]}
+    >
+      <LocationProvider>
+        {" "}
+        <Slot />
+      </LocationProvider>
+    </ThirdwebProvider>
+  );
 }
