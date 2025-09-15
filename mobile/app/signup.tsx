@@ -4,9 +4,9 @@ import { supabase } from "@/lib/supabase";
 import { useRouter } from "expo-router";
 import { generateSimpleWallet } from "@/lib/wallet";
 import { ethers } from "ethers";
-import SafarXID from "@/contracts/SafarXID.json"; // <-- ABI JSON (exported from Hardhat)
+import SafarXID from "@/contracts/SafarXID.json";
 
-const CONTRACT_ADDRESS = "0x5fbdb2315678afecb367f032d93f642f64180aa3"; // Replace with your deployed contract address
+const CONTRACT_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3"; // Hardhat local deploy
 
 const SignUpScreen = () => {
   const [email, setEmail] = useState("");
@@ -19,7 +19,6 @@ const SignUpScreen = () => {
     try {
       // Step 1: Supabase signup
       const { data, error } = await supabase.auth.signUp({ email, password });
-
       if (error) {
         Alert.alert("Signup failed", error.message);
         return;
@@ -28,11 +27,11 @@ const SignUpScreen = () => {
       const user = data.user;
       if (!user) return;
 
-      // Step 2: Generate local wallet for user
+      // Step 2: Generate a unique wallet
       const wallet = generateSimpleWallet();
       const walletAddress = wallet.address;
 
-      // Save user in Supabase DB
+      // Save wallet to Supabase
       const { error: insertError } = await supabase.from("users").insert([
         {
           user_Id: user.id,
@@ -40,14 +39,10 @@ const SignUpScreen = () => {
           email,
           phone,
           walletAddress,
+          privateKey: wallet.privateKey,
         },
       ]);
-
-      if (insertError) {
-        Alert.alert("Database insert error", insertError.message);
-        console.log(insertError);
-        return;
-      }
+      if (insertError) throw insertError;
 
       console.log("✅ Supabase user + DB entry created:", {
         userId: user.id,
@@ -57,20 +52,28 @@ const SignUpScreen = () => {
         walletAddress,
       });
 
-      // Step 3: Blockchain interaction
-      // For dev/test: use local Hardhat RPC or Sepolia RPC
-      const provider = new ethers.JsonRpcProvider(
-        "https://sepolia.infura.io/v3/<YOUR_INFURA_KEY>"
-      );
-      const signer = new ethers.Wallet("<PRIVATE_KEY>", provider); // backend signer for registering tourists
+      // Step 3: Fund + register on Hardhat
+      const provider = new ethers.JsonRpcProvider("http://192.168.1.8:8545");
 
+      // Fund new wallet with ETH from Hardhat default account
+      const funder = new ethers.Wallet(
+        "0xdf57089febbacf7ba0bc227dafbffa9fc08a93fdc68e1e42411a14efcf23656e",
+        provider
+      );
+      await funder.sendTransaction({
+        to: wallet.address,
+        value: ethers.parseEther("1.0"),
+      });
+
+      // Connect new wallet
+      const signer = wallet.connect(provider);
       const contract = new ethers.Contract(
         CONTRACT_ADDRESS,
         SafarXID.abi,
         signer
       );
 
-      // Hash phone number before sending
+      // Hash phone before sending
       const phoneHash = ethers.keccak256(ethers.toUtf8Bytes(phone));
 
       const tx = await contract.registerTourist(name, phoneHash);
@@ -79,15 +82,14 @@ const SignUpScreen = () => {
       const receipt = await tx.wait();
       console.log("✅ Blockchain tx confirmed:", receipt);
 
-      // Debugging: read back data from blockchain
-      const tourist = await contract.getTourist(signer.address);
+      const tourist = await contract.getTourist(wallet.address);
       console.log("📦 Tourist registered on-chain:", {
         name: tourist[0],
         phoneHash: tourist[1],
         createdAt: Number(tourist[2]),
       });
 
-      // Step 4: Navigate user
+      // Step 4: Navigate home
       router.push("/home");
     } catch (err: any) {
       console.error("❌ Error in handleSignUp:", err);
