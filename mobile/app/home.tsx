@@ -44,8 +44,9 @@ export default function HomeScreen() {
       </View>
 
       <View style={styles.body}>
-        <Text>Welcome Home</Text>
+        <Text>Welchjhome Home</Text>
         <Button title="Log Out" onPress={handleLogout} />
+        <Button title="Itenary" onPress={() => router.push("/itenary")} />
       </View>
     </View>
   );
