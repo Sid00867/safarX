@@ -73,30 +73,7 @@ export const DataProvider = ({ children }: Props) => {
     })();
   }, []);
 
-  // GPS accuracy sampling every 36 seconds (5 samples in 3 minutes)
-  useEffect(() => {
-    const interval = setInterval(async () => {
-      try {
-        const loc = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.High,
-        });
-        const accuracy = loc.coords.accuracy ?? 0;
-        setGpsAccuracy((prev) => {
-          const newArr = [...prev, accuracy];
-          if (newArr.length > 5) newArr.shift();
-          gpsAccuracyRef.current = newArr; // keep ref up to date
-          console.log("GPS accuracy sampled:", newArr);
-          return newArr;
-        });
-      } catch (err) {
-        console.warn("Failed to get GPS accuracy:", err);
-      }
-    }, 36000); // 36 seconds
-
-    return () => clearInterval(interval);
-  }, []);
-
-  // Calculate acc_vs_loc (called every 3 mins before sending)
+  // Helper to calculate acc_vs_loc
   const calcAccVsLoc = () => {
     const loc = locationRef.current;
     if (!loc) return 0;
@@ -106,55 +83,73 @@ export const DataProvider = ({ children }: Props) => {
     return accMagnitude > 0.02 && locGood ? 1 : 0;
   };
 
-  // Send all data every 3 minutes
+  // Function to send data
+  const sendData = async (gpsArray: number[]) => {
+    console.log("Attempting to send data...");
+
+    const now = Date.now();
+    const secondsSinceLastPing = Math.floor(
+      (now - lastSuccessfulPingTime.current) / 1000
+    );
+    setTimeSinceLastPing(secondsSinceLastPing);
+
+    const accLocVal = calcAccVsLoc();
+    setAccVsLoc(accLocVal);
+
+    const payload = {
+      network_connectivity_state: networkConnectivityRef.current,
+      acc_vs_loc: accLocVal,
+      time_since_last_successful_ping: secondsSinceLastPing,
+      gps_accuracy: gpsArray,
+      area_risk: areaRisk,
+    };
+
+    console.log("Sending data payload to backend:", payload);
+
+    try {
+      await axios.post("http://192.168.1.10:8000/api/dropoff", payload);
+      console.log("Data sent successfully");
+
+      lastSuccessfulPingTime.current = now;
+      setGpsAccuracy([]); // reset buffer
+      gpsAccuracyRef.current = [];
+    } catch (error: any) {
+      if (error.response) {
+        console.log("Response error:", error.response.data);
+      } else if (error.request) {
+        console.log("No response received:", error.request);
+      } else {
+        console.log("Axios error:", error.message);
+      }
+    }
+  };
+
+  // GPS accuracy sampling every 36 seconds , trigger send after 5 samples
   useEffect(() => {
     const interval = setInterval(async () => {
-      console.log("Attempting to send data...");
-
-      const now = Date.now();
-      const secondsSinceLastPing = Math.floor(
-        (now - lastSuccessfulPingTime.current) / 1000
-      );
-      setTimeSinceLastPing(secondsSinceLastPing);
-
-      const accLocVal = calcAccVsLoc();
-      setAccVsLoc(accLocVal);
-
-      const gpsArrayToSend =
-        gpsAccuracyRef.current.length === 5
-          ? gpsAccuracyRef.current
-          : [
-              ...gpsAccuracyRef.current,
-              ...Array(5 - gpsAccuracyRef.current.length).fill(0),
-            ];
-
-      const payload = {
-        network_connectivity_state: networkConnectivityRef.current,
-        acc_vs_loc: accLocVal,
-        time_since_last_successful_ping: secondsSinceLastPing,
-        gps_accuracy: gpsArrayToSend,
-        area_risk: areaRisk,
-      };
-
-      console.log("Sending data payload to backend:", payload);
-
       try {
-        await axios.post("http://192.168.1.10:8000/api/data", payload);
-        console.log("Data sent successfully");
+        const loc = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.High,
+        });
+        const accuracy = loc.coords.accuracy ?? 0;
 
-        lastSuccessfulPingTime.current = now;
-        setGpsAccuracy([]);
-        gpsAccuracyRef.current = [];
-      } catch (error: any) {
-        if (error.response) {
-          console.log("Response error:", error.response.data);
-        } else if (error.request) {
-          console.log("No response received:", error.request);
-        } else {
-          console.log("Axios error:", error.message);
-        }
+        setGpsAccuracy((prev) => {
+          const newArr = [...prev, accuracy];
+          if (newArr.length > 5) newArr.shift();
+          gpsAccuracyRef.current = newArr;
+          console.log("GPS accuracy sampled:", newArr);
+
+          // Trigger send when we have 5 samples
+          if (newArr.length === 5) {
+            sendData(newArr);
+          }
+
+          return newArr;
+        });
+      } catch (err) {
+        console.warn("Failed to get GPS accuracy:", err);
       }
-    }, 3 * 60 * 1000); // 3 minutes
+    }, 36000); // 36 seconds
 
     return () => clearInterval(interval);
   }, []);
