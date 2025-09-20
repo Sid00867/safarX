@@ -44,7 +44,11 @@ export default function HomeScreen() {
       </View>
 
       <View style={styles.body}>
-        <Text>Welchjhome Home</Text>
+        <Image
+          style={styles.card}
+          source={require("../assets/images/myitenary.png")}
+          contentFit="contain"
+        />
         <Button title="Log Out" onPress={handleLogout} />
         <Button title="Itenary" onPress={() => router.push("/itenary")} />
       </View>
@@ -70,6 +74,10 @@ const styles = StyleSheet.create({
   logo: {
     width: 120, // adjust as needed
     height: 40,
+  },
+  card: {
+    width: 400,
+    height: 100,
   },
   sosButton: {
     backgroundColor: "red",
