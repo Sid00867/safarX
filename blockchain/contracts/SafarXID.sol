@@ -4,7 +4,7 @@ pragma solidity ^0.8.18;
 contract SafarXID {
     struct Tourist {
         string name;
-        string phoneHash; // store hash, not raw number for privacy
+        string phoneHash;
         uint256 createdAt;
     }
 
@@ -14,13 +14,11 @@ contract SafarXID {
 
     function registerTourist(string memory _name, string memory _phoneHash) public {
         require(bytes(tourists[msg.sender].name).length == 0, "Already registered");
-        
         tourists[msg.sender] = Tourist({
             name: _name,
             phoneHash: _phoneHash,
             createdAt: block.timestamp
         });
-
         emit TouristRegistered(msg.sender, _name, block.timestamp);
     }
 

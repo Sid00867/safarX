@@ -18,6 +18,23 @@ async def receive_data(payload: DataPayload):
 
 
 
+class InactivityPayload(BaseModel):
+    hour: int = Field(..., ge=0, le=23)
+    motion_state: int = Field(..., ge=0, le=1)
+    displacement_m: float
+    time_since_last_interaction_min: int
+    missed_ping_count: int
+    area_risk: str
+    battery_level_percent: int = Field(..., ge=0, le=100)
+    is_expected_active: int = Field(..., ge=0, le=1)
+
+@app.post("/api/inactivity")
+async def receive_inactivity(payload: InactivityPayload):
+    print("Received inactivity payload:", payload)
+    return {"message": "Inactivity data received"}
+
+
+
 class TestPayload(BaseModel):
     message: str
 

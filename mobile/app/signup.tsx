@@ -6,7 +6,7 @@ import { generateSimpleWallet } from "@/lib/wallet";
 import { ethers } from "ethers";
 import SafarXID from "@/contracts/SafarXID.json";
 
-const CONTRACT_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3"; // Hardhat local deploy
+const CONTRACT_ADDRESS = "0x5fbdb2315678afecb367f032d93f642f64180aa3"; // Hardhat local deploy
 
 const SignUpScreen = () => {
   const [email, setEmail] = useState("");
@@ -53,7 +53,7 @@ const SignUpScreen = () => {
       });
 
       // Step 3: Fund + register on Hardhat
-      const provider = new ethers.JsonRpcProvider("http://192.168.1.8:8545");
+      const provider = new ethers.JsonRpcProvider("http://192.168.1.10:8545/");
 
       // Fund new wallet with ETH from Hardhat default account
       const funder = new ethers.Wallet(

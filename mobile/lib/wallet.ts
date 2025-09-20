@@ -1,7 +1,6 @@
 import { ethers } from "ethers";
 
-// Generates a new wallet with random private key
-export function generateSimpleWallet() {
-  const wallet = ethers.Wallet.createRandom();
-  return wallet;
-}
+// Generate a new random wallet
+export const generateSimpleWallet = () => {
+  return ethers.Wallet.createRandom();
+};
