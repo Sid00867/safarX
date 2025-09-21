@@ -77,13 +77,13 @@ const SignUpScreen = () => {
       const phoneHash = ethers.keccak256(ethers.toUtf8Bytes(phone));
 
       const tx = await contract.registerTourist(name, phoneHash);
-      console.log("⏳ Blockchain tx sent:", tx.hash);
+      console.log("Blockchain tx sent:", tx.hash);
 
       const receipt = await tx.wait();
-      console.log("✅ Blockchain tx confirmed:", receipt);
+      console.log("Blockchain tx confirmed:", receipt);
 
       const tourist = await contract.getTourist(wallet.address);
-      console.log("📦 Tourist registered on-chain:", {
+      console.log("Tourist registered on-chain:", {
         name: tourist[0],
         phoneHash: tourist[1],
         createdAt: Number(tourist[2]),

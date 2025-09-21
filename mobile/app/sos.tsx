@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -10,60 +11,89 @@ import { supabase } from "@/lib/supabase";
 import { Link, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
-import { useState, useEffect } from "react";
 import * as Location from "expo-location";
 
 export default function SosScreen() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [latitude, setLatitude] = useState(0.0);
-  const [longitude, setLongitude] = useState(0.0);
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
   const [userId, setUserId] = useState("");
   const [timestamp, setTimestamp] = useState("");
-  const [locationLoading, setLocationLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
 
-  // Fetch user details from Supabase
+  // 🔹 Fetch profile once
   useEffect(() => {
-    async function fetchUserData() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (user) {
-        setUserId(user.id);
-        const { data: userRow, error } = await supabase
-          .from("users")
-          .select("id, name, phone")
-          .eq("user_Id", user.id)
-          .single();
+    const fetchProfile = async () => {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
 
-        if (error) console.error("Error fetching user data:", error.message);
-        else {
-          setName(userRow.name);
-          setPhone(userRow.phone);
+        if (user) {
+          setUserId(user.id);
+          const { data: userRow, error } = await supabase
+            .from("users")
+            .select("name, phone")
+            .eq("user_Id", user.id)
+            .single();
+
+          if (!error && userRow) {
+            setName(userRow.name);
+            setPhone(userRow.phone);
+          }
         }
+      } catch (err) {
+        console.error("Error fetching profile:", err);
       }
-    }
-    fetchUserData();
+    };
+
+    fetchProfile();
   }, []);
 
-  // Get current location
+  // 🔹 Refresh location every 10s
   useEffect(() => {
-    (async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        console.error("Permission to access location was denied");
-        return;
+    let interval: ReturnType<typeof setInterval>;
+
+    const fetchLocation = async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") {
+          Alert.alert(
+            "Permission denied",
+            "Location access is required for SOS"
+          );
+          setLoading(false);
+          return;
+        }
+
+        const loc = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.High,
+        });
+
+        setLatitude(loc.coords.latitude);
+        setLongitude(loc.coords.longitude);
+        setTimestamp(new Date().toLocaleString());
+      } catch (err) {
+        console.error("Error fetching location:", err);
+      } finally {
+        setLoading(false);
       }
-      let loc = await Location.getCurrentPositionAsync({});
-      setLatitude(loc.coords.latitude);
-      setLongitude(loc.coords.longitude);
-      setTimestamp(new Date().toLocaleString());
-      setLocationLoading(false);
-    })();
+    };
+
+    fetchLocation(); // run once on mount
+    interval = setInterval(fetchLocation, 10000); // repeat every 10s
+
+    return () => clearInterval(interval);
   }, []);
 
   async function handleConfirmSOS() {
+    if (!latitude || !longitude) {
+      Alert.alert("Error", "Location not available yet.");
+      return;
+    }
+
     try {
       const { error } = await supabase.from("sos_alerts").insert([
         {
@@ -76,36 +106,21 @@ export default function SosScreen() {
 
       if (error) {
         console.error("Error inserting SOS alert:", error.message);
-      } else {
-        console.log("SOS Alert placed successfully.");
-
-        // Show popup confirmation
-        Alert.alert(
-          "✅ SOS Sent",
-          "Your SOS alert has been placed and authorities are being contacted.",
-          [
-            {
-              text: "OK",
-              onPress: async () => {
-                // Dial emergency number 112
-                const phoneNumber = "tel:112";
-                const supported = await Linking.canOpenURL(phoneNumber);
-                if (supported) {
-                  await Linking.openURL(phoneNumber);
-                } else {
-                  Alert.alert(
-                    "Error",
-                    "Unable to dial emergency number on this device."
-                  );
-                }
-
-                // Redirect back to home screen
-                router.push("/home");
-              },
-            },
-          ]
-        );
+        return;
       }
+
+      Alert.alert("SOS Sent", "Authorities are being contacted.", [
+        {
+          text: "OK",
+          onPress: async () => {
+            const phoneNumber = "tel:112";
+            if (await Linking.canOpenURL(phoneNumber)) {
+              await Linking.openURL(phoneNumber);
+            }
+            router.push("/home");
+          },
+        },
+      ]);
     } catch (err) {
       console.error("Unexpected error inserting SOS alert:", err);
     }
@@ -129,10 +144,10 @@ export default function SosScreen() {
             transition={300}
           />
         </Link>
-        <View style={{ width: 32 }} /> {/* spacer for alignment */}
+        <View style={{ width: 32 }} />
       </View>
 
-      {/* Body Content */}
+      {/* Body */}
       <View style={styles.body}>
         <Text style={styles.title}>⚠️ SOS Confirmation</Text>
         <Text style={styles.subtitle}>
@@ -142,47 +157,26 @@ export default function SosScreen() {
         <View style={styles.detailsBox}>
           <Text>Name: {name}</Text>
           <Text>Phone: {phone}</Text>
-          {locationLoading ? (
+          {loading ? (
             <Text>Fetching location...</Text>
-          ) : (
+          ) : latitude && longitude ? (
             <>
               <Text>Latitude: {latitude.toFixed(5)}</Text>
               <Text>Longitude: {longitude.toFixed(5)}</Text>
               <Text>Timestamp: {timestamp}</Text>
             </>
+          ) : (
+            <Text>Location unavailable</Text>
           )}
         </View>
-        <Text
-          style={{
-            fontSize: 12,
-            color: "gray",
-            marginTop: 20,
-            lineHeight: 18,
-          }}
-        >
-          ⚠️ Important Information{"\n"}• By sending an SOS alert, your current
-          location and basic details (name & phone number) will be shared with
-          the nearest authorities and emergency contacts.{"\n"}• Ensure that you
-          use this feature only in real emergencies (threat to life, health, or
-          safety).{"\n"}• False or prank alerts may result in penalties under
-          applicable laws.{"\n"}• Network or GPS issues may affect location
-          accuracy.{"\n"}• This app is a support tool. Always follow local
-          emergency procedures (e.g., calling 112 in India).
-          {"\n\n"}
-          By confirming, you agree that:{"\n"}• You consent to sharing your
-          details with relevant authorities for emergency response.{"\n"}• The
-          app team is not liable for delays or failures due to technical/network
-          limitations.{"\n"}• Misuse of this feature can lead to suspension of
-          your account and possible legal action.{"\n"}
-        </Text>
 
         <TouchableOpacity
           style={[
             styles.confirmButton,
-            { backgroundColor: locationLoading ? "gray" : "red" },
+            { backgroundColor: loading ? "gray" : "red" },
           ]}
           onPress={handleConfirmSOS}
-          disabled={locationLoading}
+          disabled={loading}
         >
           <Text style={styles.confirmButtonText}>Confirm SOS</Text>
         </TouchableOpacity>
