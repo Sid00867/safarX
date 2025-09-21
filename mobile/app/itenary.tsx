@@ -147,27 +147,17 @@ export default function TripPlannerScreen() {
     setDays([]);
   }
 
-  async function handleSaveTrip() {
-    if (!title) return Alert.alert("Error", "Trip title missing");
-    if (!days.length) return Alert.alert("Error", "No days generated");
-    setLoading(true);
+  async function handleSaveTrip(userId: string, tripData: any) {
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) {
-        setLoading(false);
-        return Alert.alert("Not logged in");
-      }
-      // Insert trip
+      // Insert the trip with ISO strings for dates
       const { data: trip, error: tripError } = await supabase
         .from("trips")
         .insert([
           {
-            user_id: user.id,
-            title,
-            start_date: toLocalYMD(startDate),
-            end_date: toLocalYMD(endDate),
+            user_id: userId,
+            title: tripData.title,
+            start_date: tripData.startDate, // should be 'YYYY-MM-DD' string
+            end_date: tripData.endDate,
           },
         ])
         .select()
@@ -175,60 +165,63 @@ export default function TripPlannerScreen() {
 
       if (tripError) throw tripError;
 
-      // Day and itinerary insertion
-      await Promise.all(
-        days.map(async (day, i) => {
-          const { data: tripDay, error: dayError } = await supabase
-            .from("trip_days")
-            .insert([
-              {
-                trip_id: trip.id,
-                day_number: i + 1,
-                date: toLocalYMD(day.date),
-              },
-            ])
-            .select()
-            .single();
-          if (dayError) throw dayError;
+      // Prepare trip days data in bulk insert format
+      const tripDaysToInsert = tripData.days.map((day: any, idx: number) => ({
+        trip_id: trip.id,
+        day_number: idx + 1,
+        date: toLocalYMD(day.date), // convert to YYYY-MM-DD string
+      }));
 
-          if (day.activities.length) {
-            const items = day.activities.map(
-              (a: {
-                place: any;
-                time: { toTimeString: () => string | any[] };
-                lat: any;
-                lng: any;
-              }) => ({
-                day_id: tripDay.id,
+      // Bulk insert of trip_days with returning ids
+      const { data: insertedDays, error: daysError } = await supabase
+        .from("trip_days")
+        .insert(tripDaysToInsert)
+        .select();
+
+      if (daysError) throw daysError;
+
+      // Map dayId from insertedDays array for quick reference by day index
+      const dayIdMap = insertedDays.reduce(
+        (acc: Record<number, number>, dayRow, index) => {
+          acc[index] = dayRow.id;
+          return acc;
+        },
+        {}
+      );
+
+      // Prepare all itinerary items in a single bulk insert array
+      const itineraryItemsToInsert = [];
+
+      tripData.days.forEach((day: any, idx: number) => {
+        if (day.activities && day.activities.length > 0) {
+          day.activities.forEach((a: any) => {
+            if (a.place && a.lat != null && a.lng != null) {
+              itineraryItemsToInsert.push({
+                trip_id: trip.id,
+                day_id: dayIdMap[idx],
                 place_name: a.place,
-                visit_time: a.time.toTimeString().slice(0, 8),
+                visit_time: a.time.toTimeString().slice(0, 8), // format HH:MM:SS
                 lat: a.lat,
                 lng: a.lng,
-              })
-            );
-            if (
-              items.some(
-                (item: { place_name: any; lat: null; lng: null }) =>
-                  !item.place_name || item.lat == null || item.lng == null
-              )
-            )
-              throw new Error(
-                "All places must be selected and have coordinates"
-              );
-            const { error: itemsError } = await supabase
-              .from("itinerary_items")
-              .insert(items);
-            if (itemsError) throw itemsError;
-          }
-        })
-      );
-      setLoading(false);
-      Alert.alert("Success", "✅ Trip & Itinerary saved!");
-      router.push("/trips");
-    } catch (err) {
-      setLoading(false);
-      console.error("Error saving trip:", err.message);
-      Alert.alert("Error", `❌ Failed to save trip: ${err.message}`);
+              });
+            }
+          });
+        }
+      });
+
+      if (itineraryItemsToInsert.length > 0) {
+        const { error: itemsError } = await supabase
+          .from("itinerary_items")
+          .insert(itineraryItemsToInsert);
+
+        if (itemsError) throw itemsError;
+      }
+
+      console.log("✅ Trip saved successfully!");
+      return { success: true, tripId: trip.id };
+    } catch (err: any) {
+      console.error("❌ Error saving trip:", err.message || err);
+      return { success: false, error: err };
     }
   }
 
@@ -463,7 +456,35 @@ export default function TripPlannerScreen() {
           <Button
             mode="contained"
             style={styles.saveButton}
-            onPress={handleSaveTrip}
+            onPress={async () => {
+              const {
+                data: { user },
+              } = await supabase.auth.getUser();
+
+              if (!user) {
+                Alert.alert("Error", "You must be logged in to save a trip.");
+                return;
+              }
+
+              const tripData = {
+                title,
+                startDate: toLocalYMD(startDate),
+                endDate: toLocalYMD(endDate),
+                days,
+              };
+
+              const result = await handleSaveTrip(user.id, tripData);
+
+              if (result.success) {
+                Alert.alert("✅ Success", "Trip saved successfully!");
+                //router.push("/trips"); // go to trips page if you have one
+              } else {
+                Alert.alert(
+                  "❌ Error",
+                  result.error.message || "Could not save trip."
+                );
+              }
+            }}
           >
             Save Trip
           </Button>

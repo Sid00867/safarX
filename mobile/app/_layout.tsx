@@ -4,8 +4,8 @@ import { View, ActivityIndicator } from "react-native";
 import { supabase } from "../lib/supabase";
 import { Session } from "@supabase/supabase-js";
 import "react-native-get-random-values";
-import { DataProvider } from "./DataProvider";
-import { InactivityProvider } from "./DataProvider2";
+import { DropoffDataProvider } from "./DropoffDataProvider";
+import { InactivityProvider } from "./InactivityDataProvider";
 
 export default function RootLayout() {
   const [session, setSession] = useState<Session | null>(null);
@@ -47,9 +47,9 @@ export default function RootLayout() {
 
   return (
     <InactivityProvider>
-      <DataProvider>
+      <DropoffDataProvider>
         <Slot />
-      </DataProvider>
+      </DropoffDataProvider>
     </InactivityProvider>
   );
 }

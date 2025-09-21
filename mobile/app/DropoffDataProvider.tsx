@@ -22,7 +22,7 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 
 type Props = { children: ReactNode };
 
-export const DataProvider = ({ children }: Props) => {
+export const DropoffDataProvider = ({ children }: Props) => {
   const [gpsAccuracy, setGpsAccuracy] = useState<number[]>([]);
   const gpsAccuracyRef = useRef<number[]>([]);
   const [accVsLoc, setAccVsLoc] = useState(1);

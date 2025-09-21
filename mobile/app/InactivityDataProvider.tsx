@@ -51,44 +51,53 @@ export const InactivityProvider = ({ children }: Props) => {
       const subscription = await Location.watchPositionAsync(
         { accuracy: Location.Accuracy.High, timeInterval: 1000 },
         (loc) => {
-          // GPS speed. If null, default to zero.
           const speed = loc.coords.speed ?? 0;
           const isMovingGps = speed > 1;
 
-          // Calculate displacement from last location
           if (lastLocationRef.current) {
             const earthRadiusMeters = 6371000;
             const toRadians = (deg: number) => (deg * Math.PI) / 180;
 
-            const dx =
-              loc.coords.latitude - lastLocationRef.current.coords.latitude;
-            const dy =
-              loc.coords.longitude - lastLocationRef.current.coords.longitude;
-
-            const dLat = toRadians(dx);
-            const dLon = toRadians(dy);
             const lat1 = toRadians(lastLocationRef.current.coords.latitude);
+            const lon1 = toRadians(lastLocationRef.current.coords.longitude);
             const lat2 = toRadians(loc.coords.latitude);
+            const lon2 = toRadians(loc.coords.longitude);
+
+            const deltaLat = lat2 - lat1;
+            const deltaLon = lon2 - lon1;
 
             const a =
-              Math.sin(dLat / 2) ** 2 +
-              Math.sin(dLon / 2) ** 2 * Math.cos(lat1) * Math.cos(lat2);
+              Math.sin(deltaLat / 2) ** 2 +
+              Math.cos(lat1) * Math.cos(lat2) * Math.sin(deltaLon / 2) ** 2;
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
             const distance = earthRadiusMeters * c;
 
-            // Only accumulate if GPS accuracy is ok (e.g. < 50m)
-            if ((loc.coords.accuracy ?? 1000) < 50) {
+            console.log(
+              "Calculated distance:",
+              distance,
+              "Accuracy:",
+              loc.coords.accuracy
+            );
+
+            if ((loc.coords.accuracy ?? 1000) < 100 && distance > 2) {
               setDisplacement((prev) => prev + distance);
             }
           }
+
           lastLocationRef.current = loc;
 
-          // Get accelerometer magnitude
+          // Accelerometer magnitude
           const data = accelerometerDataRef.current;
           const accMagnitude = Math.sqrt(
             data.x ** 2 + data.y ** 2 + data.z ** 2
           );
-          const isMovingAcc = accMagnitude > 0.2; // adjust threshold as needed
+          const isMovingAcc = accMagnitude > 0.2;
+
+          // Fallback: if moving but GPS accuracy is poor, increment small displacement
+          if (isMovingAcc && (loc.coords.accuracy ?? 1000) > 100) {
+            setDisplacement((prev) => prev + 1);
+            console.log("Fallback displacement +1 (poor GPS, motion detected)");
+          }
 
           setMotionState(isMovingGps || isMovingAcc ? 1 : 0);
         }
@@ -98,7 +107,7 @@ export const InactivityProvider = ({ children }: Props) => {
     })();
   }, []);
 
-  // Accelerometer listener to update ref for motion detection
+  // Accelerometer listener
   useEffect(() => {
     Accelerometer.setUpdateInterval(1000);
     const sub = Accelerometer.addListener((data) => {
@@ -107,7 +116,7 @@ export const InactivityProvider = ({ children }: Props) => {
     return () => sub.remove();
   }, []);
 
-  // Battery info fetch
+  // Battery info
   useEffect(() => {
     async function fetchBattery() {
       const level = await Battery.getBatteryLevelAsync();
@@ -116,7 +125,7 @@ export const InactivityProvider = ({ children }: Props) => {
     fetchBattery();
   }, []);
 
-  // Track app state changes as user interaction (extend as needed)
+  // Track app state
   useEffect(() => {
     const onAppStateChange = (nextAppState: AppStateStatus) => {
       if (nextAppState === "active") {
@@ -127,7 +136,7 @@ export const InactivityProvider = ({ children }: Props) => {
     return () => subscription.remove();
   }, []);
 
-  // Send inactivity data every 1 minute
+  // Send inactivity data every 1 min
   useEffect(() => {
     const interval = setInterval(async () => {
       const now = new Date();
@@ -155,7 +164,7 @@ export const InactivityProvider = ({ children }: Props) => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
-        setDisplacement(0); // reset displacement after sending
+        setDisplacement(0); // reset after sending
       } catch (error) {
         console.error("Error sending inactivity:", error);
       }

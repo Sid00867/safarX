@@ -47,7 +47,7 @@ async def predict_dropoff_anomaly(payload: DataPayload):
             'area_risk': payload.area_risk
         }
         result = model_handler.predict(payload_data)
-        
+        print(result)
         return PredictionResponse(**result)
         
     except Exception as e:
@@ -68,6 +68,7 @@ async def predict_inactivity_anomaly(payload: InactivityPayload):
         }
         
         result = inactivity_model_handler.predict(payload_data)
+        print(result)
         return InactivityResponse(**result)
         
     except Exception as e:
