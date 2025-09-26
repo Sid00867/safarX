@@ -1,6 +1,6 @@
 # AI Models in `safarX/ai/`
 
-This directory contains two core AI anomaly detection models and supporting scripts used in the safarX project. Below, you'll find an overview of the models, their purposes, the technology stack, the methodology for synthetic data generation, and a breakdown of the functionality of each file.
+This directory contains two core AI anomaly detection models and supporting scripts used in the safarX project. Below, you'll find an overview of the models, their purposes, the technology stack, the methodology for synthetic data generation, and a breakdown of the functionality of each file. Included Below is also the methodology used to calculate the SafetyScore
 
 ---
 
