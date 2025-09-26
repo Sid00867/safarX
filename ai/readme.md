@@ -32,7 +32,8 @@ This directory contains two core AI anomaly detection models and supporting scri
 | `joblib`                | Model and transformer serialization                                    |
 | `flask` (in safetyscore)| API endpoint creation for safety score inference                      |
 | `os`, `sys`             | File handling and system interaction                                   |
-| `random`                | Synthetic data generation                                             |
+| `numpy + random`                | Synthetic data generation                                             |
+| `matplotlib`                | Synthetic data analysis                                             |
 
 ---
 
