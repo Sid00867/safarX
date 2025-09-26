@@ -61,7 +61,7 @@ Synthetic data was generated with real world trends and patterns taken into cons
 - Randomized parameters and injected anomalous patterns to ensure the model learns to distinguish between typical and atypical behaviors.
 
 ### b. For Drop-off Event Detection
-- Location data and drop-off events were synthetically created to resemble normal drop-offs and injected with rare, abnormal events (e.g., drop-offs in unsafe or unexpected locations).
+- Location data and drop-off events were synthetically created to resemble normal GPS and Network drop-offs and injected with rare, abnormal events.
 - Features included: GPS, Internet connectivity and contextual data.
 - Anomalies were simulated by generating drop-offs outside typical operating zones or at odd times.
 
