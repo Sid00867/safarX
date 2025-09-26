@@ -85,7 +85,7 @@ All synthetic data in these models is created using well-known probability distr
     - **Biases the tail probabilities:** Increases the chance of generating extreme values (e.g., very long inactivity periods, very bad network conditions).
     - **Explicitly samples rare cases:** Directly inserts outlier or unlikely events at a controlled rate, even if they would be extremely rare under normal distribution parameters.
 
-This approach results in synthetic data that not only looks statistically similar to real-world data but also includes enough rare, abnormal examples to robustly train and evaluate anomaly detection models.
+  This approach results in synthetic data that not only looks statistically similar to real-world data but also includes enough rare, abnormal examples to robustly train and evaluate anomaly detection models.
 ---
 
 ## 5. File Functionality Breakdown
