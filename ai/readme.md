@@ -14,7 +14,7 @@ This directory contains two core AI anomaly detection models and supporting scri
   - `ProlongedInactivityTEST.py`
 
 ### b. Drop-off Event Detection Model
-- **Purpose**: Identifies anomalous drop-off events (e.g., unexpected or unsafe drop-off locations) in mobility/activity data.
+- **Purpose**: Identifies anomalous drop-off events (e.g., unexpected or unsafe drop-off locations) in terms of GPS/Location.
 - **Files**:
   - `dropoff-data.py`
   - `dropoff-model.py`
