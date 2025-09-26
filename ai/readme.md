@@ -132,7 +132,7 @@ The score combines four factors:
    - Bad weather (storms, heavy rain, etc.) increases risk
 
 4. **Geofence:**  
-   - Boolean input: 1.0 if geofenced area (safer), 0.0 otherwise
+   - Boolean input: 1.0 if geofenced area , 0.0 otherwise (safer)
 
 **Weights:**  
 Remoteness 0.2, Accessibility 0.2, Environment 0.2, Geofence 0.4
