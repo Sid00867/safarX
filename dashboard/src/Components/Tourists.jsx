@@ -9,7 +9,6 @@ export default function SearchComponent() {
   const [status, setStatus] = useState("");
 
   const tablesToSearch = ["users", "locations", "itinerary_items"]; 
-  
 
   const handleSearch = async () => {
     if (!searchType || !searchValue) {
@@ -27,7 +26,6 @@ export default function SearchComponent() {
       for (const table of tablesToSearch) {
         let query = supabase.from(table).select("*");
 
-        // Apply condition based on search type
         if (searchType === "name") {
           query = query.ilike("name", `%${searchValue}%`);
         } else if (searchType === "email") {
@@ -41,7 +39,6 @@ export default function SearchComponent() {
         if (error) {
           console.error(`Error in table ${table}:`, error.message);
         } else if (data.length > 0) {
-          // Tag result with table name
           allResults.push({ table, rows: data });
         }
       }
@@ -60,16 +57,29 @@ export default function SearchComponent() {
     setLoading(false);
   };
 
+  const getTableHeaders = (table, row) => {
+    if (table === "users") {
+      return ["id", "phone", "created_at", "name", "email", "user_Id"];
+    }
+    return Object.keys(row);
+  };
+
+  const getTableRowValues = (table, row) => {
+    if (table === "users") {
+      return ["id", "phone", "created_at", "name", "email", "user_Id"].map((key) => row[key] ?? "");
+    }
+    return Object.values(row);
+  };
+
   return (
-    <div style={{ maxWidth: "500px", margin: "20px auto", fontFamily: "Arial" }}>
+    <div style={{ maxWidth: "700px", margin: "20px auto", fontFamily: "Arial" }}>
       <h2>Search</h2>
 
-      {/* Dropdown for selecting search type */}
       <select
         value={searchType}
         onChange={(e) => {
           setSearchType(e.target.value);
-          setSearchValue(""); // reset input
+          setSearchValue("");
         }}
         style={{ marginBottom: "10px", padding: "5px" }}
       >
@@ -79,7 +89,6 @@ export default function SearchComponent() {
         <option value="mobile">By Mobile Number</option>
       </select>
 
-      {/* Input only shows after selecting search type */}
       {searchType && (
         <input
           type={searchType === "mobile" ? "tel" : "text"}
@@ -96,24 +105,46 @@ export default function SearchComponent() {
 
       {status && <p>{status}</p>}
 
-      {/* Results */}
       {results.length > 0 && (
         <div style={{ marginTop: "20px" }}>
-          <h3>Results:</h3>
           {results.map((result, idx) => (
-            <div
-              key={idx}
-              style={{
-                border: "1px solid #ccc",
-                borderRadius: "8px",
-                padding: "10px",
-                marginBottom: "15px",
-              }}
-            >
-              <h4>Table: {result.table}</h4>
-              <pre style={{ fontSize: "12px", whiteSpace: "pre-wrap" }}>
-                {JSON.stringify(result.rows, null, 2)}
-              </pre>
+            <div key={idx} style={{ marginBottom: "30px" }}>
+              <h3>Table: {result.table}</h3>
+              <table
+                style={{
+                  width: "100%",
+                  borderCollapse: "collapse",
+                  textAlign: "left",
+                }}
+              >
+                <thead>
+                  <tr>
+                    {getTableHeaders(result.table, result.rows[0]).map((key) => (
+                      <th
+                        key={key}
+                        style={{
+                          border: "1px solid #ccc",
+                          padding: "8px",
+                          backgroundColor: "#f2f2f2",
+                        }}
+                      >
+                        {key}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {result.rows.map((row, rIdx) => (
+                    <tr key={rIdx}>
+                      {getTableRowValues(result.table, row).map((val, cIdx) => (
+                        <td key={cIdx} style={{ border: "1px solid #ccc", padding: "8px" }}>
+                          {val !== null ? val.toString() : ""}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           ))}
         </div>
