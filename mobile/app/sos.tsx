@@ -151,7 +151,22 @@ export default function SosScreen() {
       <View style={styles.body}>
         <Text style={styles.title}>⚠️ SOS Confirmation</Text>
         <Text style={styles.subtitle}>
-          Are you sure you want to place an SOS Alert?
+          Are you sure you want to an SOS Alert?
+        </Text>
+        <Text>
+          Purpose of SOS The SOS button is provided as an emergency assistance
+          feature to help connect users with local emergency services or their
+          chosen contacts during urgent situations. This feature is intended
+          only for genuine emergencies. User Responsibility Users must not
+          misuse or trigger the SOS feature for non-emergency situations. Any
+          false or prank alerts may result in suspension of account or
+          restricted access. By using the SOS button, the user consents to
+          sharing their location for emergency purposes. Limitations of
+          Liability The app is not a replacement for local law enforcement,
+          medical, or fire services. We are not responsible for delays,
+          technical failures, or inability to provide emergency assistance. User
+          Consent By pressing the SOS button, you confirm that you are in an
+          emergency and agree to these Terms & Conditions.
         </Text>
 
         <View style={styles.detailsBox}>
