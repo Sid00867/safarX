@@ -139,14 +139,14 @@ class InactivityModelHandler:
     def predict_anomaly(self, scaled_data: np.ndarray) -> Tuple[float, bool]:
         anomaly_score = self.model.decision_function(scaled_data)[0]
         
-        is_anomaly = anomaly_score < -0.05
+        is_anomaly = anomaly_score < -0.1
         
         return anomaly_score, is_anomaly
     
     def get_risk_level(self, anomaly_score: float) -> str:
         if anomaly_score < -0.2:
             return "HIGH"
-        elif anomaly_score < -0.05:
+        elif anomaly_score < -0.1:
             return "MEDIUM"
         else:
             return "LOW"
